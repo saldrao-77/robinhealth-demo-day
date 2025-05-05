@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -24,12 +24,16 @@ import {
   Phone,
   Star,
   X,
+  Check,
+  AlertCircle,
 } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useRouter } from "next/navigation"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function ConfirmPage() {
   const router = useRouter()
+  const formRef = useRef<HTMLFormElement>(null)
   const [availabilityText, setAvailabilityText] = useState("")
   const [processedAvailability, setProcessedAvailability] = useState("")
   const [hasOrder, setHasOrder] = useState<string | null>(null)
@@ -43,6 +47,10 @@ export default function ConfirmPage() {
   const [cvc, setCvc] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
+  const [orderUnderstood, setOrderUnderstood] = useState(false)
+  const [fileSelected, setFileSelected] = useState(false)
+  const [validationError, setValidationError] = useState("")
+  const [activeTab, setActiveTab] = useState("upload")
 
   // Imaging center details (would come from previous page in real implementation)
   const imagingCenter = {
@@ -66,8 +74,51 @@ export default function ConfirmPage() {
     setProcessedAvailability(processed)
   }
 
+  const validateForm = () => {
+    // Basic validation
+    if (!availabilityText.trim()) {
+      setValidationError("Please provide your availability information")
+      return false
+    }
+
+    if (!cardholderName || !cardNumber || !billingZipCode || !expiry || !cvc) {
+      setValidationError("Please complete all payment fields")
+      return false
+    }
+
+    // Doctor's order validation
+    if (hasOrder === null) {
+      setValidationError("Please indicate whether you have a doctor's order")
+      return false
+    }
+
+    if (hasOrder === "yes") {
+      if (activeTab === "upload" && !fileSelected) {
+        setValidationError("Please upload your doctor's order")
+        return false
+      }
+      if (activeTab === "info" && (!orderProvider || !orderPractice || !orderLocation)) {
+        setValidationError("Please provide complete doctor's order information")
+        return false
+      }
+    } else if (hasOrder === "no" && !orderUnderstood) {
+      setValidationError("Please acknowledge that you will obtain a doctor's order")
+      return false
+    }
+
+    setValidationError("")
+    return true
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!validateForm()) {
+      // Scroll to the error message
+      window.scrollTo({ top: 0, behavior: "smooth" })
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -76,7 +127,7 @@ export default function ConfirmPage() {
       setShowConfirmation(true)
     } catch (error) {
       console.error("Error submitting form:", error)
-      alert("There was an error submitting your booking. Please try again.")
+      setValidationError("There was an error submitting your booking. Please try again.")
     } finally {
       setIsSubmitting(false)
     }
@@ -86,6 +137,14 @@ export default function ConfirmPage() {
     router.push("/")
   }
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFileSelected(e.target.files !== null && e.target.files.length > 0)
+  }
+
+  const handleUnderstandClick = () => {
+    setOrderUnderstood(true)
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
@@ -93,7 +152,14 @@ export default function ConfirmPage() {
       <main className="flex-1 container max-w-4xl py-12">
         <h1 className="text-3xl font-bold mb-8 text-center">Complete Your Scan Booking</h1>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        {validationError && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{validationError}</AlertDescription>
+          </Alert>
+        )}
+
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-8">
           {/* Selected Imaging Center Section */}
           <Card>
             <CardHeader>
@@ -166,7 +232,7 @@ export default function ConfirmPage() {
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="availability" className="text-base font-medium">
-                  Are there any days/times that don't work for you, or times you prefer over the next few weeks?
+                  Are there any days/times that don't work for you, or times you prefer over the next few weeks?*
                 </Label>
                 <div className="mt-2 relative">
                   <Textarea
@@ -176,6 +242,7 @@ export default function ConfirmPage() {
                     className="min-h-[120px]"
                     value={availabilityText}
                     onChange={(e) => setAvailabilityText(e.target.value)}
+                    required
                   />
                   <Button
                     type="button"
@@ -216,7 +283,7 @@ export default function ConfirmPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="cardName">Name on card</Label>
+                <Label htmlFor="cardName">Name on card*</Label>
                 <Input
                   id="cardName"
                   name="cardName"
@@ -228,7 +295,7 @@ export default function ConfirmPage() {
               </div>
 
               <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="cardNumber">Card number</Label>
+                <Label htmlFor="cardNumber">Card number*</Label>
                 <Input
                   id="cardNumber"
                   name="cardNumber"
@@ -240,7 +307,7 @@ export default function ConfirmPage() {
               </div>
 
               <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="zipCode">Billing zip code</Label>
+                <Label htmlFor="zipCode">Billing zip code*</Label>
                 <Input
                   id="zipCode"
                   name="zipCode"
@@ -253,7 +320,7 @@ export default function ConfirmPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col space-y-1.5">
-                  <Label htmlFor="expiry">Expiry date</Label>
+                  <Label htmlFor="expiry">Expiry date*</Label>
                   <Input
                     id="expiry"
                     name="expiry"
@@ -264,7 +331,7 @@ export default function ConfirmPage() {
                   />
                 </div>
                 <div className="flex flex-col space-y-1.5">
-                  <Label htmlFor="cvc">CVC</Label>
+                  <Label htmlFor="cvc">CVC*</Label>
                   <Input
                     id="cvc"
                     name="cvc"
@@ -298,7 +365,15 @@ export default function ConfirmPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <RadioGroup value={hasOrder || ""} onValueChange={setHasOrder} name="hasOrder">
+              <RadioGroup
+                value={hasOrder || ""}
+                onValueChange={(value) => {
+                  setHasOrder(value)
+                  setOrderUnderstood(false) // Reset when changing selection
+                }}
+                name="hasOrder"
+                required
+              >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="yes" id="has-order-yes" />
                   <Label htmlFor="has-order-yes">Yes, I have a doctor's order</Label>
@@ -310,7 +385,7 @@ export default function ConfirmPage() {
               </RadioGroup>
 
               {hasOrder === "yes" && (
-                <Tabs defaultValue="upload" className="w-full">
+                <Tabs defaultValue="upload" className="w-full" value={activeTab} onValueChange={setActiveTab}>
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="upload">Upload Order</TabsTrigger>
                     <TabsTrigger value="info">Enter Provider Info</TabsTrigger>
@@ -320,40 +395,62 @@ export default function ConfirmPage() {
                       <Upload className="h-8 w-8 mx-auto text-gray-400" />
                       <p className="mt-2 text-sm font-medium">Drag and drop your order PDF here</p>
                       <p className="text-xs text-gray-500 mt-1">Or click to browse files</p>
-                      <Button type="button" variant="outline" size="sm" className="mt-4">
+                      <input
+                        type="file"
+                        id="orderFile"
+                        className="hidden"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={handleFileChange}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="mt-4"
+                        onClick={() => document.getElementById("orderFile")?.click()}
+                      >
                         Select File
                       </Button>
+                      {fileSelected && (
+                        <div className="mt-2 text-sm text-green-600 flex items-center justify-center gap-1">
+                          <Check className="h-4 w-4" />
+                          File selected
+                        </div>
+                      )}
                     </div>
                   </TabsContent>
                   <TabsContent value="info" className="space-y-4 pt-4">
                     <div className="flex flex-col space-y-1.5">
-                      <Label htmlFor="providerName">Ordering Provider's Name</Label>
+                      <Label htmlFor="providerName">Ordering Provider's Name*</Label>
                       <Input
                         id="providerName"
                         name="providerName"
                         placeholder="Dr. John Smith"
                         value={orderProvider}
                         onChange={(e) => setOrderProvider(e.target.value)}
+                        required={activeTab === "info"}
                       />
                     </div>
                     <div className="flex flex-col space-y-1.5">
-                      <Label htmlFor="practiceName">Practice Name</Label>
+                      <Label htmlFor="practiceName">Practice Name*</Label>
                       <Input
                         id="practiceName"
                         name="practiceName"
                         placeholder="Smith Medical Group"
                         value={orderPractice}
                         onChange={(e) => setOrderPractice(e.target.value)}
+                        required={activeTab === "info"}
                       />
                     </div>
                     <div className="flex flex-col space-y-1.5">
-                      <Label htmlFor="location">Location</Label>
+                      <Label htmlFor="location">Location*</Label>
                       <Input
                         id="location"
                         name="location"
                         placeholder="City, State"
                         value={orderLocation}
                         onChange={(e) => setOrderLocation(e.target.value)}
+                        required={activeTab === "info"}
                       />
                     </div>
                   </TabsContent>
@@ -382,8 +479,18 @@ export default function ConfirmPage() {
                     </a>{" "}
                     and we can help you from there.
                   </p>
-                  <Button type="button" className="w-full mb-4">
-                    I Understand and Will Obtain an Order
+                  <Button
+                    type="button"
+                    className={`w-full mb-4 ${orderUnderstood ? "bg-green-600 hover:bg-green-700" : ""}`}
+                    onClick={handleUnderstandClick}
+                  >
+                    {orderUnderstood ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Check className="h-5 w-5" />I Understand and Will Obtain an Order
+                      </span>
+                    ) : (
+                      "I Understand and Will Obtain an Order"
+                    )}
                   </Button>
 
                   <div className="flex justify-center gap-4 mt-4">
