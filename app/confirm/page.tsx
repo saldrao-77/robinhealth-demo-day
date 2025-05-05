@@ -148,7 +148,7 @@ export default function ConfirmPage() {
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
 
-      <main className="flex-1 container max-w-4xl py-12">
+      <main className="flex-1 container max-w-4xl py-12 px-4 md:pl-12 md:pr-4">
         <h1 className="text-3xl font-bold mb-8 text-center">Complete Your Scan Booking</h1>
 
         {validationError && (
