@@ -2,7 +2,8 @@
 
 import type React from "react"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -29,9 +30,11 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useRouter } from "next/navigation"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 
 export default function ConfirmPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const formRef = useRef<HTMLFormElement>(null)
   const [availabilityText, setAvailabilityText] = useState("")
   const [processedAvailability, setProcessedAvailability] = useState("")
@@ -50,16 +53,20 @@ export default function ConfirmPage() {
   const [fileSelected, setFileSelected] = useState(false)
   const [validationError, setValidationError] = useState("")
   const [activeTab, setActiveTab] = useState("upload")
+  const [imagingCenter, setImagingCenter] = useState(null)
 
-  // Imaging center details (would come from previous page in real implementation)
-  const imagingCenter = {
-    name: "Bay Area Medical Imaging Center",
-    address: "123 Medical Plaza Dr, San Francisco, CA 94107",
-    phone: "(415) 555-1234",
-    hours: "Open 8am-6pm Mon-Fri",
-    rating: "4.8 (124 reviews)",
-    costRange: "$250 - $350",
-  }
+  useEffect(() => {
+    // Get imaging center from URL params
+    const centerParam = searchParams.get("center")
+    if (centerParam) {
+      try {
+        const center = JSON.parse(decodeURIComponent(centerParam))
+        setImagingCenter(center)
+      } catch (error) {
+        console.error("Error parsing center data:", error)
+      }
+    }
+  }, [searchParams])
 
   const handleAIProcess = () => {
     // Simulate AI processing
@@ -169,49 +176,64 @@ export default function ConfirmPage() {
               <CardDescription>You've selected the following imaging center for your scan.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-start gap-4">
-                <div className="h-20 w-20 bg-gray-100 rounded-md flex items-center justify-center">
-                  <Building2 className="h-10 w-10 text-gray-400" />
+              {imagingCenter ? (
+                <div className="flex items-start gap-4">
+                  <div className="h-20 w-20 bg-gray-100 rounded-md flex items-center justify-center">
+                    <Building2 className="h-10 w-10 text-gray-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold">{imagingCenter.name}</h3>
+                    <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
+                      <MapPin className="h-3.5 w-3.5" />
+                      <span>{imagingCenter.address}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+                      <div className="flex items-center gap-1 text-sm text-gray-500">
+                        <Phone className="h-3.5 w-3.5" />
+                        <span>(415) 555-1234</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-sm text-gray-500">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>Open 8am-6pm Mon-Fri</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-sm text-gray-500">
+                        <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                        <span>
+                          {imagingCenter.rating} ({imagingCenter.reviews} reviews)
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
+                        In-Network
+                      </span>
+                      {imagingCenter.studies.map((study, index) => (
+                        <Badge key={index} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                          {study}
+                        </Badge>
+                      ))}
+                      <span className="inline-flex items-center rounded-full bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700">
+                        {imagingCenter.availability} Availability
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold">{imagingCenter.name}</h3>
-                  <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
-                    <MapPin className="h-3.5 w-3.5" />
-                    <span>{imagingCenter.address}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
-                    <div className="flex items-center gap-1 text-sm text-gray-500">
-                      <Phone className="h-3.5 w-3.5" />
-                      <span>{imagingCenter.phone}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-sm text-gray-500">
-                      <Clock className="h-3.5 w-3.5" />
-                      <span>{imagingCenter.hours}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-sm text-gray-500">
-                      <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                      <span>{imagingCenter.rating}</span>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
-                      In-Network
-                    </span>
-                    <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
-                      MRI Available
-                    </span>
-                    <span className="inline-flex items-center rounded-full bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700">
-                      Same-Week Availability
-                    </span>
-                  </div>
+              ) : (
+                <div className="text-center py-4">
+                  <p>No imaging center selected. Please return to the search page to select a center.</p>
+                  <Button className="mt-4" onClick={() => router.push("/find-scan")}>
+                    Return to Search
+                  </Button>
                 </div>
-              </div>
-              <div className="mt-4 p-3 bg-gray-50 rounded-md text-sm">
-                <p className="font-medium">Your estimated out-of-pocket cost: {imagingCenter.costRange}</p>
-                <p className="text-gray-500 mt-1">
-                  Final price depends on your specific insurance coverage and deductible status.
-                </p>
-              </div>
+              )}
+              {imagingCenter && (
+                <div className="mt-4 p-3 bg-gray-50 rounded-md text-sm">
+                  <p className="font-medium">Your estimated out-of-pocket cost: ${imagingCenter.price}</p>
+                  <p className="text-gray-500 mt-1">
+                    Final price depends on your specific insurance coverage and deductible status.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -507,7 +529,12 @@ export default function ConfirmPage() {
 
           {/* Submit Button */}
           <div className="flex justify-center">
-            <Button type="submit" size="lg" className="px-8 bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              size="lg"
+              className="px-8 bg-blue-600 hover:bg-blue-700"
+              disabled={isSubmitting || !imagingCenter}
+            >
               {isSubmitting ? "Processing..." : "Complete Booking"}
             </Button>
           </div>
