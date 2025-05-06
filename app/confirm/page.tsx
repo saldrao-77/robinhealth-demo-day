@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,10 +32,57 @@ import { useRouter } from "next/navigation"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 
+// Define a type for the imaging center
+interface ImagingCenter {
+  id: number
+  name: string
+  address: string
+  city: string
+  state: string
+  zip_code: string
+  lat: number
+  lng: number
+  price: number
+  original_price: number
+  savings: number
+  availability: string
+  rating: number
+  reviews: number
+  studies: string[]
+  distance?: number
+}
+
 export default function ConfirmPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const formRef = useRef<HTMLFormElement>(null)
+
+  // Parse URL parameters only once during initialization
+  const initialCenter = (() => {
+    try {
+      const centerParam = searchParams.get("center")
+      if (centerParam) {
+        return JSON.parse(decodeURIComponent(centerParam)) as ImagingCenter
+      }
+    } catch (error) {
+      console.error("Error parsing center data:", error)
+    }
+    return null
+  })()
+
+  const initialStudyType = (() => {
+    try {
+      const studyTypeParam = searchParams.get("studyType")
+      if (studyTypeParam) {
+        return decodeURIComponent(studyTypeParam)
+      }
+    } catch (error) {
+      console.error("Error parsing study type:", error)
+    }
+    return null
+  })()
+
+  // Form state
   const [availabilityText, setAvailabilityText] = useState("")
   const [processedAvailability, setProcessedAvailability] = useState("")
   const [hasOrder, setHasOrder] = useState<string | null>(null)
@@ -53,20 +100,6 @@ export default function ConfirmPage() {
   const [fileSelected, setFileSelected] = useState(false)
   const [validationError, setValidationError] = useState("")
   const [activeTab, setActiveTab] = useState("upload")
-  const [imagingCenter, setImagingCenter] = useState(null)
-
-  useEffect(() => {
-    // Get imaging center from URL params
-    const centerParam = searchParams.get("center")
-    if (centerParam) {
-      try {
-        const center = JSON.parse(decodeURIComponent(centerParam))
-        setImagingCenter(center)
-      } catch (error) {
-        console.error("Error parsing center data:", error)
-      }
-    }
-  }, [searchParams])
 
   const handleAIProcess = () => {
     // Simulate AI processing
@@ -176,16 +209,16 @@ export default function ConfirmPage() {
               <CardDescription>You've selected the following imaging center for your scan.</CardDescription>
             </CardHeader>
             <CardContent>
-              {imagingCenter ? (
+              {initialCenter ? (
                 <div className="flex items-start gap-4">
                   <div className="h-20 w-20 bg-gray-100 rounded-md flex items-center justify-center">
                     <Building2 className="h-10 w-10 text-gray-400" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold">{imagingCenter.name}</h3>
+                    <h3 className="text-lg font-semibold">{initialCenter.name}</h3>
                     <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
                       <MapPin className="h-3.5 w-3.5" />
-                      <span>{imagingCenter.address}</span>
+                      <span>{initialCenter.address}</span>
                     </div>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
                       <div className="flex items-center gap-1 text-sm text-gray-500">
@@ -199,21 +232,23 @@ export default function ConfirmPage() {
                       <div className="flex items-center gap-1 text-sm text-gray-500">
                         <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
                         <span>
-                          {imagingCenter.rating} ({imagingCenter.reviews} reviews)
+                          {initialCenter.rating} ({initialCenter.reviews} reviews)
                         </span>
                       </div>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
-                        In-Network
-                      </span>
-                      {imagingCenter.studies.map((study, index) => (
+                      {initialCenter.studies.map((study, index) => (
                         <Badge key={index} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                           {study}
                         </Badge>
                       ))}
+                      {initialStudyType && (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          Selected: {initialStudyType}
+                        </Badge>
+                      )}
                       <span className="inline-flex items-center rounded-full bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700">
-                        {imagingCenter.availability} Availability
+                        {initialCenter.availability} Availability
                       </span>
                     </div>
                   </div>
@@ -226,11 +261,19 @@ export default function ConfirmPage() {
                   </Button>
                 </div>
               )}
-              {imagingCenter && (
+              {initialCenter && (
                 <div className="mt-4 p-3 bg-gray-50 rounded-md text-sm">
-                  <p className="font-medium">Your estimated out-of-pocket cost: ${imagingCenter.price}</p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="font-medium">Your estimated out-of-pocket cost: ${initialCenter.price}</p>
+                    {initialCenter.original_price && (
+                      <>
+                        <span className="text-gray-500 line-through">${initialCenter.original_price}</span>
+                        <span className="text-green-600">Save ${initialCenter.savings}</span>
+                      </>
+                    )}
+                  </div>
                   <p className="text-gray-500 mt-1">
-                    Final price depends on your specific insurance coverage and deductible status.
+                    This is a cash price. No insurance will be billed for this service.
                   </p>
                 </div>
               )}
@@ -533,7 +576,7 @@ export default function ConfirmPage() {
               type="submit"
               size="lg"
               className="px-8 bg-blue-600 hover:bg-blue-700"
-              disabled={isSubmitting || !imagingCenter}
+              disabled={isSubmitting || !initialCenter}
             >
               {isSubmitting ? "Processing..." : "Complete Booking"}
             </Button>

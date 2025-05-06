@@ -24,6 +24,7 @@ export default function MapComponent({ centers, selectedCenter, onCenterSelect }
   const [mapError, setMapError] = useState<string | null>(null)
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [leafletLoaded, setLeafletLoaded] = useState(false)
   const centersRef = useRef(centers)
   const selectedCenterRef = useRef(selectedCenter)
 
@@ -57,7 +58,7 @@ export default function MapComponent({ centers, selectedCenter, onCenterSelect }
 
   // Load Leaflet library
   useEffect(() => {
-    if (typeof window === "undefined" || window.L || isInitialized) return
+    if (typeof window === "undefined" || leafletLoaded) return
 
     const loadLeaflet = async () => {
       try {
@@ -74,8 +75,15 @@ export default function MapComponent({ centers, selectedCenter, onCenterSelect }
 
         // Create a promise that resolves when the script loads or rejects on error
         await new Promise<void>((resolve, reject) => {
-          scriptEl.onload = () => resolve()
-          scriptEl.onerror = () => reject(new Error("Failed to load Leaflet"))
+          scriptEl.onload = () => {
+            console.log("Leaflet loaded successfully")
+            setLeafletLoaded(true)
+            resolve()
+          }
+          scriptEl.onerror = () => {
+            console.error("Failed to load Leaflet")
+            reject(new Error("Failed to load Leaflet"))
+          }
           document.body.appendChild(scriptEl)
         })
 
@@ -87,18 +95,27 @@ export default function MapComponent({ centers, selectedCenter, onCenterSelect }
     }
 
     loadLeaflet()
-  }, [isInitialized])
+  }, [leafletLoaded])
 
   // Initialize map once Leaflet is loaded
   useEffect(() => {
-    if (!isInitialized || !mapRef.current || mapInstanceRef.current) return
+    if (!isInitialized || !mapRef.current) return
 
     try {
+      // Check if map is already initialized
+      if (mapInstanceRef.current) {
+        console.log("Map already initialized, skipping initialization")
+        return
+      }
+
       const L = window.L
       if (!L) {
+        console.error("Leaflet not available")
         setMapError("Map library not available. Please try again later.")
         return
       }
+
+      console.log("Initializing map")
 
       // Default view (San Francisco)
       const defaultLat = 37.7749
@@ -134,26 +151,22 @@ export default function MapComponent({ centers, selectedCenter, onCenterSelect }
         document.head.appendChild(style)
       }
 
+      console.log("Map initialized successfully")
       setIsMapLoaded(true)
     } catch (error) {
       console.error("Error initializing map:", error)
       setMapError("Failed to initialize map. Please try again later.")
     }
-
-    // Cleanup function
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove()
-        mapInstanceRef.current = null
-      }
-      markersRef.current = []
-    }
   }, [isInitialized])
 
   // Update map center and add markers when centers change
   useEffect(() => {
-    if (!isMapLoaded || !mapInstanceRef.current) return
+    if (!isMapLoaded || !mapInstanceRef.current) {
+      console.log("Map not loaded yet, skipping marker update")
+      return
+    }
 
+    console.log("Updating markers with centers:", centers.length)
     const L = window.L
     const mapInstance = mapInstanceRef.current
 
@@ -161,10 +174,13 @@ export default function MapComponent({ centers, selectedCenter, onCenterSelect }
     if (centers && centers.length > 0) {
       const centerLat = centers.reduce((sum, center) => sum + center.lat, 0) / centers.length
       const centerLng = centers.reduce((sum, center) => sum + center.lng, 0) / centers.length
+
+      console.log("Setting map center to:", centerLat, centerLng)
       mapInstance.setView([centerLat, centerLng], mapInstance.getZoom())
     }
 
     // Clear existing markers
+    console.log("Clearing existing markers:", markersRef.current.length)
     markersRef.current.forEach((marker) => {
       if (marker && marker.remove) {
         marker.remove()
@@ -174,6 +190,7 @@ export default function MapComponent({ centers, selectedCenter, onCenterSelect }
 
     // Add markers for each center
     if (centers && centers.length > 0) {
+      console.log("Adding new markers for centers")
       centers.forEach((center) => {
         const isSelected = center.id === selectedCenter
 
@@ -196,9 +213,9 @@ export default function MapComponent({ centers, selectedCenter, onCenterSelect }
                 <div class="font-bold text-lg">$${Math.round(center.price).toLocaleString()}</div>
                 <button 
                   class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors"
-                  onclick="window.selectCenter(${center.id})"
+                  onclick="window.bookCenter(${center.id})"
                 >
-                  Select
+                  Book Now
                 </button>
               </div>
             </div>
@@ -216,13 +233,30 @@ export default function MapComponent({ centers, selectedCenter, onCenterSelect }
         }
       })
 
-      // Add a global function to handle the select button click in popups
+      // Add global functions to handle popup button clicks
       window.selectCenter = (id: number) => {
         onCenterSelect(id)
+      }
+
+      window.bookCenter = (id: number) => {
+        // First select the center
+        onCenterSelect(id)
+
+        // Then find the center and trigger the book now action
+        const center = centers.find((c) => c.id === id)
+        if (center) {
+          // Get the current URL to extract query parameters
+          const url = new URL(window.location.href)
+          const studyType = url.searchParams.get("studyType") || "MRI"
+
+          // Navigate to confirm page with center info
+          window.location.href = `/confirm?center=${encodeURIComponent(JSON.stringify(center))}&studyType=${encodeURIComponent(studyType)}`
+        }
       }
     }
   }, [centers, selectedCenter, isMapLoaded, createMarkerHtml, onCenterSelect])
 
+  // Fallback component for map errors
   if (mapError) {
     return (
       <div className="h-full w-full flex items-center justify-center bg-gray-100 rounded-lg">
@@ -259,5 +293,6 @@ declare global {
   interface Window {
     L: any
     selectCenter: (id: number) => void
+    bookCenter: (id: number) => void
   }
 }

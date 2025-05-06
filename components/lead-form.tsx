@@ -3,8 +3,8 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { submitLeadForm } from "@/app/actions/submit-form"
 import { X } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 // Fallback function to save form data locally if database fails
 const saveSubmissionLocally = (data: any) => {
@@ -35,6 +35,7 @@ export function LeadForm() {
   const [phoneValue, setPhoneValue] = useState("")
   const [language, setLanguage] = useState("en")
   const phoneNumber = "2625018982"
+  const router = useRouter()
 
   // Listen for language changes
   useEffect(() => {
@@ -90,87 +91,14 @@ export function LeadForm() {
     window.history.pushState({}, "", window.location.pathname)
   }
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  // New function to handle direct navigation to find-scan
+  const handleFindScan = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setIsSubmitting(true)
-    setMessage(null)
+    const form = e.currentTarget as HTMLFormElement
+    const zipCode = form.zipcode.value
 
-    const form = e.currentTarget
-    const formElement = form as HTMLFormElement
-
-    // Get raw phone value (without formatting) for database
-    const rawPhone = phoneValue.replace(/\D/g, "")
-
-    // Prepare submission data
-    const submissionData = {
-      zipCode: formElement.zipcode.value,
-      phone: rawPhone,
-      imagingType: formElement.imaging.value,
-      bodyPart: showAdditionalFields ? formElement.bodyPart.value : undefined,
-      hasOrder: showAdditionalFields ? formElement.doctorOrder.value === "yes" : undefined,
-      fullName: showAdditionalFields ? formElement.fullName.value : undefined,
-      headers: {
-        referer: window.location.href,
-      },
-    }
-
-    try {
-      // Try to submit to database
-      const result = await submitLeadForm(submissionData)
-
-      if (result.success) {
-        // Success - show thank you popup
-        form.reset()
-        setPhoneValue("")
-        setShowAdditionalFields(false)
-        showThankYou()
-      } else {
-        // Database error - try local storage fallback
-        console.log("Database submission failed:", result.debug || result.message)
-        const savedLocally = saveSubmissionLocally(submissionData)
-
-        if (savedLocally) {
-          // Local storage fallback worked - still show success to user
-          console.log("Saved to local storage as fallback")
-          form.reset()
-          setPhoneValue("")
-          setShowAdditionalFields(false)
-          showThankYou()
-        } else {
-          // Both database and local storage failed
-          setMessage({
-            type: "error",
-            text:
-              language === "en"
-                ? "Unable to submit form. Please try again or contact us directly."
-                : "No se pudo enviar el formulario. Inténtelo de nuevo o contáctenos directamente.",
-          })
-        }
-      }
-    } catch (error) {
-      console.error("Form submission error:", error)
-
-      // Try local storage fallback
-      const savedLocally = saveSubmissionLocally(submissionData)
-
-      if (savedLocally) {
-        // Local storage fallback worked - still show success to user
-        console.log("Saved to local storage after error")
-        form.reset()
-        setPhoneValue("")
-        setShowAdditionalFields(false)
-        showThankYou()
-      } else {
-        setMessage({
-          type: "error",
-          text:
-            language === "en"
-              ? "An unexpected error occurred. Please try again or contact us directly."
-              : "Ocurrió un error inesperado. Inténtelo de nuevo. Inténtelo de nuevo o contáctenos directamente.",
-        })
-      }
-    } finally {
-      setIsSubmitting(false)
+    if (zipCode && zipCode.match(/^\d{5}$/)) {
+      router.push(`/find-scan?zipCode=${zipCode}`)
     }
   }
 
@@ -208,7 +136,7 @@ export function LeadForm() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
+      <form onSubmit={handleFindScan} className="space-y-3 md:space-y-4">
         <div>
           <label htmlFor="zipcode" className="block text-sm font-medium text-gray-700 mb-1">
             {language === "en" ? "Zip code" : "Código postal"}
@@ -227,16 +155,9 @@ export function LeadForm() {
 
         <button
           type="submit"
-          disabled={isSubmitting}
-          className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors disabled:opacity-70"
+          className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors"
         >
-          {isSubmitting
-            ? language === "en"
-              ? "Submitting..."
-              : "Enviando..."
-            : language === "en"
-              ? "Get affordable scan quotes now"
-              : "Obtén cotizaciones asequibles ahora"}
+          {language === "en" ? "Get affordable scan quotes now" : "Obtén cotizaciones asequibles ahora"}
         </button>
 
         <div className="text-center my-2">
