@@ -1,4 +1,6 @@
 import ZipCodeForm from "@/components/zip-code-form"
+import { SiteHeader } from "@/components/site-header"
+import { SiteFooter } from "@/components/site-footer"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -8,11 +10,16 @@ export const metadata: Metadata = {
 
 export default function FindScanPage() {
   return (
-    <main className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-center mb-8">Find Affordable Scans Near You</h1>
-      <div className="max-w-xl mx-auto">
-        <ZipCodeForm />
-      </div>
-    </main>
+    <div className="flex flex-col min-h-screen">
+      <SiteHeader />
+
+      <main className="flex-1 bg-gray-50 py-8">
+        <div className="container mx-auto px-4">
+          <ZipCodeForm />
+        </div>
+      </main>
+
+      <SiteFooter />
+    </div>
   )
 }
