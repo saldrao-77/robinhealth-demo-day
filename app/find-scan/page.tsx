@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Search, MapPin, Filter, X, Building2, Star, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -305,7 +305,7 @@ const cityCoordinates = {
   Fairfield: { lat: 38.2493, lng: -122.04, radius: 0.05 },
 }
 
-// Mock data for imaging centers
+// Mock data for imaging centers - memoized to prevent regeneration on every render
 const generateImagingCenters = (zipCode) => {
   // If the zip code is not in the Bay Area, default to San Francisco
   if (!bayAreaZipCodes.includes(zipCode)) {
@@ -337,24 +337,31 @@ const generateImagingCenters = (zipCode) => {
     selectedCities = ["San Rafael", "Novato", "Richmond", "San Francisco"]
   }
 
+  // Use a seed based on the zip code for consistent results
+  const zipSeed = zipCode.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)
+
   return Array.from({ length: 10 }, (_, i) => {
-    const cityName = selectedCities[i % selectedCities.length]
+    // Use a deterministic approach to select cities based on index and zip seed
+    const cityIndex = (i + zipSeed) % selectedCities.length
+    const cityName = selectedCities[cityIndex]
     const cityData = cityCoordinates[cityName]
 
     // Generate coordinates within the city's radius (on land)
-    const angle = Math.random() * 2 * Math.PI
-    const distance = Math.random() * cityData.radius
+    // Use a deterministic angle based on index and zip seed
+    const angle = ((i * 36 + zipSeed) % 360) * (Math.PI / 180)
+    const distance = (0.2 + ((i * 0.07 + zipSeed * 0.01) % 0.8)) * cityData.radius
     const lat = cityData.lat + distance * Math.cos(angle)
     const lng = cityData.lng + distance * Math.sin(angle)
 
-    const distanceFromZip = (1 + Math.random() * 9).toFixed(1)
-    const price = (150 + Math.random() * 200).toFixed(2)
+    // Generate deterministic values based on index and zip seed
+    const distanceFromZip = (1 + ((i * 1.1 + zipSeed * 0.01) % 9)).toFixed(1)
+    const price = (150 + ((i * 20 + zipSeed) % 200)).toFixed(2)
     const originalPrice = 893
     const savings = (originalPrice - Number.parseFloat(price)).toFixed(2)
 
-    // Generate random availability
+    // Generate availability based on index
     const availabilityOptions = ["Today", "Tomorrow", "This Week", "Next Week"]
-    const availabilityIndex = Math.floor(Math.random() * availabilityOptions.length)
+    const availabilityIndex = (i + zipSeed) % availabilityOptions.length
     const availability = availabilityOptions[availabilityIndex]
 
     return {
@@ -365,14 +372,14 @@ const generateImagingCenters = (zipCode) => {
       originalPrice,
       savings: Number.parseFloat(savings),
       availability,
-      address: `${Math.floor(Math.random() * 999) + 100} Main St, ${cityName}, CA`,
-      rating: (4 + Math.random()).toFixed(1),
-      reviews: Math.floor(Math.random() * 150) + 50,
+      address: `${Math.floor(100 + ((i * 100 + zipSeed) % 900))} Main St, ${cityName}, CA`,
+      rating: (4 + ((i * 0.1 + zipSeed * 0.01) % 1)).toFixed(1),
+      reviews: Math.floor(50 + ((i * 10 + zipSeed) % 100)),
       lat,
       lng,
       studies: [
-        studyTypes[Math.floor(Math.random() * studyTypes.length)].label,
-        studyTypes[Math.floor(Math.random() * studyTypes.length)].label,
+        studyTypes[(i + zipSeed) % studyTypes.length].label,
+        studyTypes[(i + 1 + zipSeed) % studyTypes.length].label,
       ].filter((value, index, self) => self.indexOf(value) === index), // Remove duplicates
     }
   }).sort((a, b) => a.distance - b.distance) // Sort by distance
@@ -390,8 +397,17 @@ export default function FindScanPage() {
   })
   const [imagingCenters, setImagingCenters] = useState([])
   const [isFiltered, setIsFiltered] = useState(false)
+  const [hasInitialized, setHasInitialized] = useState(false)
 
+  // Memoize the center selection handler to prevent recreation on every render
+  const handleCenterClick = useCallback((id: number) => {
+    setSelectedCenter((prevId) => (prevId === id ? null : id))
+  }, [])
+
+  // Initialize data based on URL params - only run once
   useEffect(() => {
+    if (hasInitialized) return
+
     // Get zip code from URL params
     const zip = searchParams.get("zipCode")
     if (zip) {
@@ -418,26 +434,30 @@ export default function FindScanPage() {
         document.head.appendChild(style)
       }
     }
-  }, [searchParams])
 
-  const handleCenterClick = (id: number) => {
-    setSelectedCenter(id === selectedCenter ? null : id)
-  }
+    setHasInitialized(true)
+  }, [searchParams, hasInitialized])
 
-  const handleBookNow = (center) => {
-    // Navigate to confirm page with center info
-    router.push(`/confirm?center=${encodeURIComponent(JSON.stringify(center))}`)
-  }
+  // Memoize the book now handler
+  const handleBookNow = useCallback(
+    (center) => {
+      // Navigate to confirm page with center info
+      router.push(`/confirm?center=${encodeURIComponent(JSON.stringify(center))}`)
+    },
+    [router],
+  )
 
-  const handleSearch = () => {
+  // Memoize the search handler
+  const handleSearch = useCallback(() => {
     // Filter centers based on selected criteria
     setIsFiltered(true)
     // In a real app, this would make an API call with the filters
     // For now, we'll just simulate filtering by regenerating centers
     setImagingCenters(generateImagingCenters(zipCode))
-  }
+  }, [zipCode])
 
-  const resetFilters = () => {
+  // Memoize the reset filters handler
+  const resetFilters = useCallback(() => {
     setFilters({
       study: "",
       bodyPart: "",
@@ -445,7 +465,7 @@ export default function FindScanPage() {
     })
     setIsFiltered(false)
     setImagingCenters(generateImagingCenters(zipCode))
-  }
+  }, [zipCode])
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -459,7 +479,10 @@ export default function FindScanPage() {
           {/* Search and filters */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-              <Select value={filters.study} onValueChange={(value) => setFilters({ ...filters, study: value })}>
+              <Select
+                value={filters.study}
+                onValueChange={(value) => setFilters((prev) => ({ ...prev, study: value }))}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Study Type" />
                 </SelectTrigger>
@@ -472,7 +495,10 @@ export default function FindScanPage() {
                 </SelectContent>
               </Select>
 
-              <Select value={filters.bodyPart} onValueChange={(value) => setFilters({ ...filters, bodyPart: value })}>
+              <Select
+                value={filters.bodyPart}
+                onValueChange={(value) => setFilters((prev) => ({ ...prev, bodyPart: value }))}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Body Part" />
                 </SelectTrigger>
@@ -485,7 +511,10 @@ export default function FindScanPage() {
                 </SelectContent>
               </Select>
 
-              <Select value={filters.protocol} onValueChange={(value) => setFilters({ ...filters, protocol: value })}>
+              <Select
+                value={filters.protocol}
+                onValueChange={(value) => setFilters((prev) => ({ ...prev, protocol: value }))}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Protocol" />
                 </SelectTrigger>
@@ -524,21 +553,30 @@ export default function FindScanPage() {
                 {filters.study && (
                   <Badge variant="secondary" className="flex items-center gap-1">
                     {studyTypes.find((s) => s.value === filters.study)?.label || filters.study}
-                    <X className="h-3 w-3 cursor-pointer" onClick={() => setFilters({ ...filters, study: "" })} />
+                    <X
+                      className="h-3 w-3 cursor-pointer"
+                      onClick={() => setFilters((prev) => ({ ...prev, study: "" }))}
+                    />
                   </Badge>
                 )}
 
                 {filters.bodyPart && (
                   <Badge variant="secondary" className="flex items-center gap-1">
                     {bodyParts.find((b) => b.value === filters.bodyPart)?.label || filters.bodyPart}
-                    <X className="h-3 w-3 cursor-pointer" onClick={() => setFilters({ ...filters, bodyPart: "" })} />
+                    <X
+                      className="h-3 w-3 cursor-pointer"
+                      onClick={() => setFilters((prev) => ({ ...prev, bodyPart: "" }))}
+                    />
                   </Badge>
                 )}
 
                 {filters.protocol && (
                   <Badge variant="secondary" className="flex items-center gap-1">
                     {protocols.find((p) => p.value === filters.protocol)?.label || filters.protocol}
-                    <X className="h-3 w-3 cursor-pointer" onClick={() => setFilters({ ...filters, protocol: "" })} />
+                    <X
+                      className="h-3 w-3 cursor-pointer"
+                      onClick={() => setFilters((prev) => ({ ...prev, protocol: "" }))}
+                    />
                   </Badge>
                 )}
               </div>
