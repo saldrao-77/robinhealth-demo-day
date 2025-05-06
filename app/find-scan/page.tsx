@@ -93,24 +93,261 @@ const protocols = [
   { value: "mrcp", label: "MRCP" },
 ]
 
+// Bay Area zip codes
+const bayAreaZipCodes = [
+  "94102",
+  "94103",
+  "94104",
+  "94105",
+  "94107",
+  "94108",
+  "94109",
+  "94110",
+  "94111",
+  "94112",
+  "94114",
+  "94115",
+  "94116",
+  "94117",
+  "94118",
+  "94121",
+  "94122",
+  "94123",
+  "94124",
+  "94127",
+  "94129",
+  "94130",
+  "94131",
+  "94132",
+  "94133",
+  "94134",
+  "94158",
+  "94601",
+  "94602",
+  "94603",
+  "94605",
+  "94606",
+  "94607",
+  "94608",
+  "94609",
+  "94610",
+  "94611",
+  "94612",
+  "94613",
+  "94618",
+  "94619",
+  "94621",
+  "94702",
+  "94703",
+  "94704",
+  "94705",
+  "94706",
+  "94707",
+  "94708",
+  "94709",
+  "94710",
+  "94720",
+  "94536",
+  "94537",
+  "94538",
+  "94539",
+  "94555",
+  "94540",
+  "94541",
+  "94542",
+  "94543",
+  "94544",
+  "94545",
+  "94501",
+  "94502",
+  "94546",
+  "94552",
+  "94568",
+  "94560",
+  "94550",
+  "94551",
+  "94566",
+  "94588",
+  "94577",
+  "94578",
+  "94579",
+  "94587",
+  "94801",
+  "94804",
+  "94805",
+  "94806",
+  "94518",
+  "94519",
+  "94520",
+  "94521",
+  "94595",
+  "94596",
+  "94597",
+  "94598",
+  "94509",
+  "94531",
+  "94513",
+  "94506",
+  "94526",
+  "94553",
+  "94565",
+  "94582",
+  "94583",
+  "94014",
+  "94015",
+  "94016",
+  "94017",
+  "94061",
+  "94062",
+  "94063",
+  "94065",
+  "94401",
+  "94402",
+  "94403",
+  "94404",
+  "94027",
+  "94002",
+  "94010",
+  "94019",
+  "94025",
+  "94030",
+  "94044",
+  "94066",
+  "94080",
+  "95110",
+  "95111",
+  "95112",
+  "95113",
+  "95116",
+  "95117",
+  "95118",
+  "95119",
+  "95120",
+  "95121",
+  "95122",
+  "95123",
+  "95124",
+  "95125",
+  "95126",
+  "95127",
+  "95128",
+  "95129",
+  "95130",
+  "95131",
+  "95132",
+  "95133",
+  "95134",
+  "95135",
+  "95136",
+  "95138",
+  "95139",
+  "95148",
+  "94301",
+  "94303",
+  "94304",
+  "94306",
+  "95008",
+  "95014",
+  "94022",
+  "94024",
+  "95035",
+  "94040",
+  "94041",
+  "94043",
+  "95050",
+  "95051",
+  "95054",
+  "94085",
+  "94086",
+  "94087",
+  "94089",
+  "94901",
+  "94903",
+  "94941",
+  "94965",
+  "94920",
+  "94925",
+  "94930",
+  "94939",
+  "94945",
+  "94947",
+  "94949",
+  "94957",
+  "94589",
+  "94590",
+  "94591",
+  "94592",
+  "94533",
+  "94534",
+]
+
+// Land-based coordinates for Bay Area cities
+const cityCoordinates = {
+  "San Francisco": { lat: 37.7749, lng: -122.4194, radius: 0.05 },
+  Oakland: { lat: 37.8044, lng: -122.2711, radius: 0.05 },
+  Berkeley: { lat: 37.8715, lng: -122.273, radius: 0.04 },
+  "San Jose": { lat: 37.3382, lng: -121.8863, radius: 0.08 },
+  "Palo Alto": { lat: 37.4419, lng: -122.143, radius: 0.04 },
+  "Redwood City": { lat: 37.4852, lng: -122.2364, radius: 0.04 },
+  "Mountain View": { lat: 37.3861, lng: -122.0839, radius: 0.04 },
+  Sunnyvale: { lat: 37.3688, lng: -122.0363, radius: 0.05 },
+  "Santa Clara": { lat: 37.3541, lng: -121.9552, radius: 0.05 },
+  Fremont: { lat: 37.5485, lng: -121.9886, radius: 0.06 },
+  Hayward: { lat: 37.6688, lng: -122.0808, radius: 0.05 },
+  Richmond: { lat: 37.9357, lng: -122.3477, radius: 0.05 },
+  Alameda: { lat: 37.7652, lng: -122.2416, radius: 0.03 },
+  "Walnut Creek": { lat: 37.9101, lng: -122.0652, radius: 0.04 },
+  Concord: { lat: 37.9779, lng: -122.0301, radius: 0.05 },
+  "San Mateo": { lat: 37.563, lng: -122.3255, radius: 0.04 },
+  "San Rafael": { lat: 37.9735, lng: -122.5311, radius: 0.04 },
+  Novato: { lat: 38.1074, lng: -122.5697, radius: 0.05 },
+  Vallejo: { lat: 38.1041, lng: -122.2566, radius: 0.05 },
+  Fairfield: { lat: 38.2493, lng: -122.04, radius: 0.05 },
+}
+
 // Mock data for imaging centers
 const generateImagingCenters = (zipCode) => {
-  const cities = [
-    "San Francisco",
-    "Oakland",
-    "Berkeley",
-    "San Jose",
-    "Palo Alto",
-    "Redwood City",
-    "Mountain View",
-    "Sunnyvale",
-    "Santa Clara",
-    "Fremont",
-  ]
+  // If the zip code is not in the Bay Area, default to San Francisco
+  if (!bayAreaZipCodes.includes(zipCode)) {
+    zipCode = "94102" // Default to San Francisco
+  }
+
+  // Select cities to use based on the zip code
+  // This is a simplified approach - in a real app, you'd use geocoding
+  let selectedCities = Object.keys(cityCoordinates)
+
+  // For San Francisco zip codes
+  if (zipCode.startsWith("941")) {
+    selectedCities = ["San Francisco", "Oakland", "Berkeley", "San Mateo", "Alameda"]
+  }
+  // For East Bay zip codes
+  else if (zipCode.startsWith("945") || zipCode.startsWith("946") || zipCode.startsWith("947")) {
+    selectedCities = ["Oakland", "Berkeley", "Alameda", "Hayward", "Fremont", "Richmond"]
+  }
+  // For South Bay zip codes
+  else if (zipCode.startsWith("950") || zipCode.startsWith("951")) {
+    selectedCities = ["San Jose", "Santa Clara", "Sunnyvale", "Mountain View", "Palo Alto"]
+  }
+  // For Peninsula zip codes
+  else if (zipCode.startsWith("940") || zipCode.startsWith("944")) {
+    selectedCities = ["San Mateo", "Redwood City", "Palo Alto", "Mountain View", "San Francisco"]
+  }
+  // For North Bay zip codes
+  else if (zipCode.startsWith("949")) {
+    selectedCities = ["San Rafael", "Novato", "Richmond", "San Francisco"]
+  }
 
   return Array.from({ length: 10 }, (_, i) => {
-    const city = cities[i % cities.length]
-    const distance = (1 + Math.random() * 9).toFixed(1)
+    const cityName = selectedCities[i % selectedCities.length]
+    const cityData = cityCoordinates[cityName]
+
+    // Generate coordinates within the city's radius (on land)
+    const angle = Math.random() * 2 * Math.PI
+    const distance = Math.random() * cityData.radius
+    const lat = cityData.lat + distance * Math.cos(angle)
+    const lng = cityData.lng + distance * Math.sin(angle)
+
+    const distanceFromZip = (1 + Math.random() * 9).toFixed(1)
     const price = (150 + Math.random() * 200).toFixed(2)
     const originalPrice = 893
     const savings = (originalPrice - Number.parseFloat(price)).toFixed(2)
@@ -120,24 +357,19 @@ const generateImagingCenters = (zipCode) => {
     const availabilityIndex = Math.floor(Math.random() * availabilityOptions.length)
     const availability = availabilityOptions[availabilityIndex]
 
-    // Generate random coordinates near the zip code area
-    // This is a simplified approach - in a real app, you'd use geocoding
-    const baseLat = 37.7749 + (Math.random() - 0.5) * 0.2
-    const baseLng = -122.4194 + (Math.random() - 0.5) * 0.2
-
     return {
       id: i + 1,
-      name: `Imaging Center - ${city}`,
-      distance: Number.parseFloat(distance),
+      name: `Imaging Center - ${cityName}`,
+      distance: Number.parseFloat(distanceFromZip),
       price: Number.parseFloat(price),
       originalPrice,
       savings: Number.parseFloat(savings),
       availability,
-      address: `${Math.floor(Math.random() * 999) + 100} Main St, ${city}, CA`,
+      address: `${Math.floor(Math.random() * 999) + 100} Main St, ${cityName}, CA`,
       rating: (4 + Math.random()).toFixed(1),
       reviews: Math.floor(Math.random() * 150) + 50,
-      lat: baseLat,
-      lng: baseLng,
+      lat,
+      lng,
       studies: [
         studyTypes[Math.floor(Math.random() * studyTypes.length)].label,
         studyTypes[Math.floor(Math.random() * studyTypes.length)].label,
@@ -166,6 +398,25 @@ export default function FindScanPage() {
       setZipCode(zip)
       // Generate centers based on the zip code
       setImagingCenters(generateImagingCenters(zip))
+    } else {
+      // Default to San Francisco if no zip code is provided
+      setZipCode("94102")
+      setImagingCenters(generateImagingCenters("94102"))
+    }
+
+    // Add global styles for z-index
+    if (typeof document !== "undefined") {
+      const styleId = "global-dropdown-styles"
+      if (!document.getElementById(styleId)) {
+        const style = document.createElement("style")
+        style.id = styleId
+        style.innerHTML = `
+          .radix-select-content {
+            z-index: 9999 !important;
+          }
+        `
+        document.head.appendChild(style)
+      }
     }
   }, [searchParams])
 
@@ -212,7 +463,7 @@ export default function FindScanPage() {
                 <SelectTrigger>
                   <SelectValue placeholder="Select Study Type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[9999]">
                   {studyTypes.map((study) => (
                     <SelectItem key={study.value} value={study.value}>
                       {study.label}
@@ -225,7 +476,7 @@ export default function FindScanPage() {
                 <SelectTrigger>
                   <SelectValue placeholder="Select Body Part" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[9999]">
                   {bodyParts.map((part) => (
                     <SelectItem key={part.value} value={part.value}>
                       {part.label}
@@ -238,7 +489,7 @@ export default function FindScanPage() {
                 <SelectTrigger>
                   <SelectValue placeholder="Select Protocol" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[9999]">
                   {protocols.map((protocol) => (
                     <SelectItem key={protocol.value} value={protocol.value}>
                       {protocol.label}
@@ -364,7 +615,7 @@ export default function FindScanPage() {
                         </div>
                         <Badge
                           variant="outline"
-                          className={`${
+                          className={`whitespace-nowrap px-2 py-1 text-center min-w-[90px] ${
                             center.availability === "Today"
                               ? "bg-green-50 text-green-700"
                               : center.availability === "Tomorrow"
@@ -390,7 +641,7 @@ export default function FindScanPage() {
 
                         <Button
                           size="sm"
-                          className="bg-blue-600 hover:bg-blue-700"
+                          className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
                           onClick={(e) => {
                             e.stopPropagation()
                             handleBookNow(center)

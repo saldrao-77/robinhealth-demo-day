@@ -1,0 +1,12 @@
+/* Global styles for dropdowns */
+.radix-select-content {
+  z-index: 9999 !important;
+}
+
+/* Ensure badges have proper spacing and alignment */
+.badge {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
