@@ -82,10 +82,6 @@ export default function AboutPage() {
       src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Senate-HELP.jpg-ThkRrk4hTDVz3y6TqJgn1nYHVkHjW8.jpeg",
       alt: "Senate HELP Committee",
     },
-    {
-      src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/US_Department_of_Veterans_Affairs_logo.svg-L6wNLLjYfbZBZul4oKIYK2NAU2IdQg.png",
-      alt: "VA Hospital",
-    },
   ]
 
   return (
@@ -324,7 +320,7 @@ export default function AboutPage() {
                         alt="Dr. Raj Rao, Chief Medical Officer"
                         width={600}
                         height={900}
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-cover"
                         style={{ objectPosition: "center 35%" }}
                       />
                     </div>
